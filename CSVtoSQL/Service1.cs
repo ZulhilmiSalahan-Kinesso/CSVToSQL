@@ -19,13 +19,14 @@ namespace CSVtoSQL
         {
             InitializeComponent();
             DataTable csvData = GetDataTabletFromCSVFile("C:\\Users\\mmd\\Documents\\freelance\\Ajim\\Test - MIQ.CSV");
+            InsertDataIntoSQLServerUsingSQLBulkCopy(csvData);
         }
 
         //read data from file
         public static DataTable GetDataTabletFromCSVFile(string csv_file_path)
         {
             DataTable dtTable = new DataTable();
-            
+            dtTable.TableName = "sample";
             try
             {
                 using (TextFieldParser csvReader = new TextFieldParser(csv_file_path))
@@ -89,25 +90,31 @@ namespace CSVtoSQL
         //insert Data from File into SQL
         public static void InsertDataIntoSQLServerUsingSQLBulkCopy(DataTable csvData)
         {
-            /*
-            for staging
-            using(SqlConnection dbConnection = new SqlConnection("Data Source=RAPPPISAP.\SQLEXPRESS; Initial Catalog=PISAPDETAIL; Integrated Security=SSPI;"))
-            */
-
-            //for testing
-            using (SqlConnection dbConnection = new SqlConnection("Data Source=VMLIMSPRSB; Initial Catalog=PISAPDETAIL; Integrated Security=SSPI;"))
+            //set connection setting
+            //make sure change this setting
+            string connetionString = "Server=tcp:<server name>;Initial Catalog=testing;Persist Security Info=False;User Id=<username>;Password=<password>;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;";
+            SqlConnection _connection = new SqlConnection(connetionString);
+            try
             {
-                dbConnection.Open();
-                using (SqlBulkCopy s = new SqlBulkCopy(dbConnection))
+                _connection.Open();
+
+                // Write data to database
+                using (SqlBulkCopy sqlBulkCopy = new SqlBulkCopy(_connection))
                 {
-                    s.DestinationTableName = "dbo.PISAPDETAIL";
+                    sqlBulkCopy.DestinationTableName = csvData.TableName;
 
                     foreach (var column in csvData.Columns)
-                        s.ColumnMappings.Add(column.ToString(), column.ToString());
+                        sqlBulkCopy.ColumnMappings.Add(column.ToString(), column.ToString());
 
-                    s.WriteToServer(csvData);
+                    sqlBulkCopy.WriteToServer(csvData);
                 }
             }
+            catch (Exception ex)
+            {
+               Console.WriteLine("Can not open connection ! ");
+            }
+
+            
         }
     }
 }
